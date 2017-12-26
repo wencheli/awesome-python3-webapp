@@ -12,7 +12,8 @@ def next_id():
 class User(Model):
     __table__='users'
 
-    id=StringField(primary_key=True,default=next_id, ddl='varchar(50)')
+    #定义属性的类型和默认参数！这些参数会传入metaclass来生成User类
+    id = StringField(primary_key=True,default=next_id, ddl='varchar(50)')
     email = StringField(ddl='varchar(50)')
     passwd = StringField(ddl='varchar(50)')
     admin = BooleanField()
