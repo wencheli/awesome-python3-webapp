@@ -1,4 +1,4 @@
-# -*- usingcode: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 import aiomysql, asyncio,logging
 
@@ -25,23 +25,21 @@ def create_pool(loop, **kw):
     )
 
 #查看数据库数据的函数(第一个参数为sql语句,第二个则是占位符对应的参数)
-@asyncio.coroutine
-def select(sql, args, size=None):
+async def select(sql, args, size=None):
     log(sql,args)
     global __pool
-    with (yield from __pool) as conn:
-        cur = yield from conn.cursor(aiomysql.DictCursor)
-        # mysql使用%s作为占位符,sql使用的是?作为占位符,使用replace()函数替换掉,
-        # 后面就是占位符对应的参数,这里巧妙的使用了or关键字的短路原理,左为真返回左,否则返回or右边的
-        yield from cur.execute(sql.replace('?','%s'), args or ())
-        if size:
-            #fetchmany()方法可以获得多条数据，但需要指定数据的条数
-            # 一次性返回size条查询结果，结果是一个list，里面是tuple
-            rs = yield from cur.fetchmany(size)
-        else:
-            rs = yield from cur.fetchall()
+    async with __pool.get() as conn:
+        async with conn.cursor(aiomysql.DictCursor) as cur:
+            # mysql使用%s作为占位符,sql使用的是?作为占位符,使用replace()函数替换掉,
+            # 后面就是占位符对应的参数,这里巧妙的使用了or关键字的短路原理,左为真返回左,否则返回or右边的
+            await cur.execute(sql.replace('?','%s'), args or ())
+            if size:
+                #fetchmany()方法可以获得多条数据，但需要指定数据的条数
+                # 一次性返回size条查询结果，结果是一个list，里面是tuple
+                rs = await cur.fetchmany(size)
+            else:
+                rs = await cur.fetchall()
         # 关闭游标，不用手动关闭conn，因为是在with语句里面，会自动关闭，因为是select，所以不需要提交事务(commit)
-        yield from cur.close()
         logging.info('rows returned: %s' % len(rs))
         return rs
 
@@ -110,7 +108,7 @@ class ModelMetaclass(type):
         attrs['__primary_key__'] = primarykey #主键属性名
         attrs['__fields__'] = fields  #除主键外的属性名
         # 构造默认的SELECT, INSERT, UPDATE和DELETE语句:
-        attrs['__select__'] = 'select `%s`, `%s` from `%s`' % (primarykey, ', '.join(escaped_fields),tableName)
+        attrs['__select__'] = 'select `%s`, %s from `%s`' % (primarykey, ', '.join(escaped_fields), tableName)
         attrs['__insert__'] = 'insert into `%s` (%s, `%s`) values (%s)' % (tableName, ', '.join(escaped_fields),
                                 primarykey, create_args_string(len(escaped_fields) + 1))
         attrs['__update__'] = 'update `%s` set %s where `%s`=?' % (tableName, ', '.join(map(lambda f: '`%s`=?'
@@ -134,7 +132,7 @@ class Model(dict, metaclass = ModelMetaclass):
     def __setattr__(self, key, value):
         self[key] = value
 
-    def getvalue(self, key):
+    def getValue(self, key):
         return getattr(self, key, None)
 
     def getValueOrDefault(self,key):

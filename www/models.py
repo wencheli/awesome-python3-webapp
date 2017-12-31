@@ -1,4 +1,4 @@
-# -*- usingcode: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 import time, uuid, sys
 
@@ -45,6 +45,7 @@ class Comment(Model):
     created_at = FloatField(default=time.time)
 
 #测试数据库是否正常工作
+'''
 import orm, asyncio
 from models import User, Blog, Comment
 
@@ -62,3 +63,4 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.run_until_complete(test(loop))
     loop.close()
+'''

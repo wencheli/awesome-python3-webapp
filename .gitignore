@@ -1,0 +1,6 @@
+venv
+
+*.idea
+
+www/__pycache__/
+www/test_view.py
